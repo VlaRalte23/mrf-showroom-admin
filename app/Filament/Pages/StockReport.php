@@ -85,7 +85,7 @@ class StockReport extends Page
                 'tyres.price',
                 'showrooms.id as showroom_id',
                 'showrooms.name as showroom',
-                DB::raw('COALESCE(p.purchased,0) - COALESCE(s.sold,0) + COALESCE(it.transferred_in,0) - COALESCE(ot.transferred_out,0) as stock')
+                DB::raw('GREATEST(0, COALESCE(p.purchased,0) - COALESCE(s.sold,0) + COALESCE(it.transferred_in,0) - COALESCE(ot.transferred_out,0)) as stock')
             )
 
             ->orderBy('showrooms.name')

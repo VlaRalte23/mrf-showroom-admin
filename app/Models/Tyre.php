@@ -42,6 +42,9 @@ public function getStockByShowroom($showroomId)
         ->where('from_showroom_id', $showroomId)
         ->sum('quantity');
 
-    return $invoiceStock - $saleStock + $incomingTransfers - $outgoingTransfers;
+    $stock = $invoiceStock - $saleStock + $incomingTransfers - $outgoingTransfers;
+    
+    // Ensure stock is never negative
+    return max(0, $stock);
 }
 }

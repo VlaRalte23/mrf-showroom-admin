@@ -50,6 +50,7 @@ class SaleForm
                     TextInput::make('quantity')
                         ->numeric()
                         ->required()
+                        ->min(0)
                         ->reactive()
                         ->helperText(function ($state, $get) {
                             $tyreId = $get('tyre_id');
@@ -100,6 +101,7 @@ class SaleForm
                         TextInput::make('price')
             ->label('Price')
             ->numeric()
+            ->min(0)
             ->prefix('₹')
             ->required(),
 
