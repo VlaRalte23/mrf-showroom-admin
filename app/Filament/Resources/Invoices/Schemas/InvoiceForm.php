@@ -44,11 +44,11 @@ class InvoiceForm
                     TextInput::make('quantity')
                         ->numeric()
                         ->required()
-                        ->min(0),
+                        ->minValue(0),
 
                     TextInput::make('price')
                         ->numeric()
-                        ->min(0)
+                        ->minValue(0)
                         ->label('Cost Price'),
 
                 ])

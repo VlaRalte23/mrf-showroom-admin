@@ -44,7 +44,7 @@ class StockTransferForm
                 ->label('Quantity')
                 ->numeric()
                 ->required()
-                ->min(0)
+                ->minValue(0)
                 ->reactive()
                 ->helperText(function ($state, $get) {
                     $tyreId = $get('tyre_id');

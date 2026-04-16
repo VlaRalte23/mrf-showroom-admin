@@ -26,7 +26,7 @@ class TyreForm
                     ->label('Price')
                     ->numeric()
                     ->prefix('₹')
-                    ->min(0)
+                    ->minValue(0)
                     ->required(),
 
             ]);
