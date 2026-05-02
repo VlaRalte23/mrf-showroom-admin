@@ -30,7 +30,7 @@ class RecentStockTransfers extends BaseWidget
 
                 Tables\Columns\TextColumn::make('tyre.tyre_size')
                     ->label('Tyre')
-                    ->description(fn (StockTransfer $record): string => $record->tyre->pattern)
+                    ->description(fn (StockTransfer $record): string => $record->tyre?->pattern ?? '')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('quantity')

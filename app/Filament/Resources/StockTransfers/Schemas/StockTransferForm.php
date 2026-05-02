@@ -9,7 +9,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 class StockTransferForm
 {
@@ -19,14 +18,24 @@ class StockTransferForm
 
             Select::make('from_showroom_id')
                 ->label('From Showroom')
-                ->options(Showroom::pluck('name', 'id'))
+                ->options(
+                    Showroom::query()
+                        ->pluck('name', 'id')
+                        ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Showroom')
+                        ->all()
+                )
                 ->searchable()
                 ->required()
                 ->reactive(),
 
             Select::make('to_showroom_id')
                 ->label('To Showroom')
-                ->options(Showroom::pluck('name', 'id'))
+                ->options(
+                    Showroom::query()
+                        ->pluck('name', 'id')
+                        ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Showroom')
+                        ->all()
+                )
                 ->searchable()
                 ->required(),
 
@@ -34,7 +43,11 @@ class StockTransferForm
                 ->label('Tyre')
                 ->options(
                     Tyre::query()
-                        ->pluck(DB::raw("CONCAT(tyre_size,' ',pattern)"), 'id')
+                        ->select('id')
+                        ->selectRaw("TRIM(CONCAT_WS(' ', COALESCE(tyre_size, ''), COALESCE(pattern, ''))) as label")
+                        ->pluck('label', 'id')
+                        ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Tyre')
+                        ->all()
                 )
                 ->searchable()
                 ->required()

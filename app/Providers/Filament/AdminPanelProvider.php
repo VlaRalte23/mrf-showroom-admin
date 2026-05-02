@@ -39,6 +39,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 \App\Filament\Widgets\TotalStockOverview::class,
+                \App\Filament\Widgets\ShowroomStockOverview::class,
+                \App\Filament\Widgets\DebtOverview::class,
                 \App\Filament\Widgets\LowStockAlerts::class,
                 \App\Filament\Widgets\RecentSales::class,
                 \App\Filament\Widgets\SalesByShowroomChart::class,

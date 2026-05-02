@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Sales\Tables;
 
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -68,6 +70,21 @@ class SalesTable
                         return $state;
                     }),
 
+                // Debt Status
+                BadgeColumn::make('debt_status')
+                    ->label('Debt')
+                    ->getStateUsing(function ($record) {
+                        return $record->hasDebt() ? 'Has Debt' : 'No Debt';
+                    })
+                    ->colors([
+                        'success' => 'No Debt',
+                        'warning' => 'Has Debt',
+                    ])
+                    ->icons([
+                        'heroicon-o-check-circle' => 'No Debt',
+                        'heroicon-o-exclamation-triangle' => 'Has Debt',
+                    ]),
+
             ])
 
             ->defaultSort('date', 'desc')
@@ -94,6 +111,12 @@ class SalesTable
             ])
 
             ->recordActions([
+                Action::make('create_debt')
+                    ->label('Create Debt')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->color('warning')
+                    ->visible(fn ($record) => !$record->hasDebt())
+                    ->url(fn ($record) => route('filament.admin.resources.debts.create', ['sale_id' => $record->id])),
                 EditAction::make(),
             ])
 

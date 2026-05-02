@@ -10,7 +10,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 
 class SaleForm
 {
@@ -20,7 +19,12 @@ class SaleForm
 
             Select::make('showroom_id')
                 ->label('Showroom')
-                ->options(Showroom::pluck('name', 'id'))
+                ->options(
+                    Showroom::query()
+                        ->pluck('name', 'id')
+                        ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Showroom')
+                        ->all()
+                )
                 ->searchable()
                 ->required()
                 ->reactive(),
@@ -40,9 +44,13 @@ class SaleForm
                     Select::make('tyre_id')
                         ->label('Tyre')
                         ->options(
-    Tyre::query()
-        ->pluck(DB::raw("CONCAT(tyre_size,' ',pattern)"), 'id')
-)
+                            Tyre::query()
+                                ->select('id')
+                                ->selectRaw("TRIM(CONCAT_WS(' ', COALESCE(tyre_size, ''), COALESCE(pattern, ''))) as label")
+                                ->pluck('label', 'id')
+                                ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Tyre')
+                                ->all()
+                        )
                         ->searchable()
                         ->required()
                         ->reactive(),

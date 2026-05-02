@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use BackedEnum;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class StockReport extends Page
 {
@@ -14,6 +15,8 @@ class StockReport extends Page
 
     public $stocks = [];
     public $showrooms = [];
+    public string $search = '';
+    public string $categoryFilter = '';
 
     public function mount()
     {
@@ -55,7 +58,7 @@ class StockReport extends Page
             )
             ->groupBy('tyre_id', 'from_showroom_id');
 
-        $this->stocks = DB::table('tyres')
+        $rows = DB::table('tyres')
             ->crossJoin('showrooms')
 
             ->leftJoinSub($purchases, 'p', function ($join) {
@@ -82,15 +85,59 @@ class StockReport extends Page
                 'tyres.id as tyre_id',
                 'tyres.tyre_size',
                 'tyres.pattern',
+                'tyres.category',
                 'tyres.price',
                 'showrooms.id as showroom_id',
                 'showrooms.name as showroom',
                 DB::raw('GREATEST(0, COALESCE(p.purchased,0) - COALESCE(s.sold,0) + COALESCE(it.transferred_in,0) - COALESCE(ot.transferred_out,0)) as stock')
             )
 
+            ->orderByRaw('COALESCE(tyres.category, "")')
+            ->orderBy('tyres.tyre_size')
             ->orderBy('showrooms.name')
-            ->get()
+            ->get();
 
-            ->groupBy('tyre_id');
+        $this->stocks = $rows
+            ->groupBy(function ($row) {
+                return trim((string) ($row->category ?? '')) !== '' ? $row->category : 'No Category';
+            })
+            ->map(function (Collection $categoryRows) {
+                return $categoryRows->groupBy('tyre_id');
+            });
+    }
+
+    public function getFilteredStocksProperty(): Collection
+    {
+        $search = strtolower(trim($this->search));
+        $categoryFilter = trim($this->categoryFilter);
+
+        return collect($this->stocks)
+            ->when($categoryFilter !== '', function (Collection $groups) use ($categoryFilter) {
+                return $groups->filter(fn ($items, $category) => $category === $categoryFilter);
+            })
+            ->map(function (Collection $tyres) use ($search) {
+                return $tyres->filter(function (Collection $items) use ($search) {
+                    if ($search === '') {
+                        return true;
+                    }
+
+                    $first = $items->first();
+                    $label = strtolower(trim(($first->tyre_size ?? '') . ' ' . ($first->pattern ?? '') . ' ' . ($first->category ?? '')));
+
+                    return str_contains($label, $search);
+                });
+            })
+            ->filter(fn (Collection $tyres) => $tyres->isNotEmpty());
+    }
+
+    public function getCategoryOptionsProperty(): Collection
+    {
+        return collect($this->stocks)->keys()->values();
+    }
+
+    public function getCategoryCountsProperty(): Collection
+    {
+        return collect($this->stocks)
+            ->map(fn (Collection $tyres) => $tyres->count());
     }
 }
