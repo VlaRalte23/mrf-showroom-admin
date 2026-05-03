@@ -17,10 +17,9 @@ class TyreForm
                     ->label('Tyre Size')
                     ->required()
                     ->live(onBlur: true)
-                    ->rule(function ($get) {
-                        return function (string $attribute, $value, $fail) use ($get) {
-                            $record = request()->route('record');
-                            $recordId = is_object($record) ? $record->getKey() : $record;
+                    ->rule(function ($get, ?Tyre $record) {
+                        return function (string $attribute, $value, $fail) use ($get, $record) {
+                            $recordId = $record?->getKey();
 
                             $size = strtolower(trim((string) $value));
                             $pattern = strtolower(trim((string) ($get('pattern') ?? '')));
@@ -40,10 +39,9 @@ class TyreForm
                 TextInput::make('pattern')
                     ->label('Pattern')
                     ->live(onBlur: true)
-                    ->rule(function ($get) {
-                        return function (string $attribute, $value, $fail) use ($get) {
-                            $record = request()->route('record');
-                            $recordId = is_object($record) ? $record->getKey() : $record;
+                    ->rule(function ($get, ?Tyre $record) {
+                        return function (string $attribute, $value, $fail) use ($get, $record) {
+                            $recordId = $record?->getKey();
 
                             $size = strtolower(trim((string) ($get('tyre_size') ?? '')));
                             $pattern = strtolower(trim((string) $value));
