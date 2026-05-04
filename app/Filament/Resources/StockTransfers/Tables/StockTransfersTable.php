@@ -10,6 +10,7 @@ use Filament\Actions\CreateAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
 class StockTransfersTable
@@ -18,10 +19,24 @@ class StockTransfersTable
     {
         return $table
             ->modifyQueryUsing(function (Builder $query): void {
-                $groupExpression = "CASE
-                    WHEN st.batch_id IS NOT NULL AND st.batch_id NOT LIKE 'legacy-%'
-                    THEN st.batch_id
-                    ELSE CONCAT(
+                $groupExpression = self::hasBatchIdColumn()
+                    ? "CASE
+                        WHEN st.batch_id IS NOT NULL AND st.batch_id NOT LIKE 'legacy-%'
+                        THEN st.batch_id
+                        ELSE CONCAT(
+                            'legacygrp-',
+                            st.from_showroom_id,
+                            '-',
+                            st.to_showroom_id,
+                            '-',
+                            DATE_FORMAT(st.date, '%Y%m%d'),
+                            '-',
+                            COALESCE(st.notes, ''),
+                            '-',
+                            DATE_FORMAT(st.created_at, '%Y-%m-%d %H:%i:%s')
+                        )
+                    END"
+                    : "CONCAT(
                         'legacygrp-',
                         st.from_showroom_id,
                         '-',
@@ -32,8 +47,7 @@ class StockTransfersTable
                         COALESCE(st.notes, ''),
                         '-',
                         DATE_FORMAT(st.created_at, '%Y-%m-%d %H:%i:%s')
-                    )
-                END";
+                    )";
 
                 $query->whereIn('stock_transfers.id', function ($subQuery) use ($groupExpression) {
                     $subQuery
@@ -120,7 +134,11 @@ class StockTransfersTable
 
     protected static function getBatchTransfersQuery(StockTransfer $record): Builder
     {
-        if (filled($record->batch_id) && !str_starts_with((string) $record->batch_id, 'legacy-')) {
+        if (
+            self::hasBatchIdColumn()
+            && filled($record->batch_id)
+            && !str_starts_with((string) $record->batch_id, 'legacy-')
+        ) {
             return StockTransfer::query()->where('batch_id', $record->batch_id);
         }
 
@@ -136,5 +154,10 @@ class StockTransfersTable
                 fn (Builder $query) => $query->whereNull('notes')
             )
             ->whereBetween('created_at', [$createdAt->copy()->startOfSecond(), $createdAt->copy()->endOfSecond()]);
+    }
+
+    protected static function hasBatchIdColumn(): bool
+    {
+        return Schema::hasColumn('stock_transfers', 'batch_id');
     }
 }

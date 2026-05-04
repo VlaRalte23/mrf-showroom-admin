@@ -7,6 +7,7 @@ use App\Filament\Resources\StockTransfers\StockTransferResource;
 use App\Models\StockTransfer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Illuminate\Support\Str;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Schema;
@@ -35,18 +36,24 @@ class CreateStockTransfer extends CreateRecord
 
         $firstCreated = null;
         $batchId = (string) Str::uuid();
+        $hasBatchIdColumn = SchemaFacade::hasColumn('stock_transfers', 'batch_id');
 
-        DB::transaction(function () use ($data, $items, $batchId, &$firstCreated) {
+        DB::transaction(function () use ($data, $items, $batchId, $hasBatchIdColumn, &$firstCreated) {
             foreach ($items as $item) {
-                $created = StockTransfer::query()->create([
-                    'batch_id' => $batchId,
+                $payload = [
                     'from_showroom_id' => $data['from_showroom_id'],
                     'to_showroom_id' => $data['to_showroom_id'],
                     'tyre_id' => $item['tyre_id'],
                     'quantity' => $item['quantity'],
                     'date' => $data['date'],
                     'notes' => $data['notes'] ?? null,
-                ]);
+                ];
+
+                if ($hasBatchIdColumn) {
+                    $payload['batch_id'] = $batchId;
+                }
+
+                $created = StockTransfer::query()->create($payload);
 
                 $firstCreated ??= $created;
             }
