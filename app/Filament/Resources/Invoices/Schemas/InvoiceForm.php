@@ -32,6 +32,7 @@ class InvoiceForm
                 ->required(),
 
             DatePicker::make('date')
+                ->default(today())
                 ->required(),
 
             Repeater::make('items')

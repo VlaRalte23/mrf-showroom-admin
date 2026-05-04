@@ -44,6 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\LowStockAlerts::class,
                 \App\Filament\Widgets\RecentSales::class,
                 \App\Filament\Widgets\SalesByShowroomChart::class,
+                \App\Filament\Widgets\MonthlyShowroomSalesReport::class,
                 \App\Filament\Widgets\RecentStockTransfers::class,
                 \App\Filament\Widgets\MonthlySalesTrend::class,
             ])

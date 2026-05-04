@@ -93,9 +93,11 @@ class SalesTable
                 Filter::make('date_range')
                     ->form([
                         DatePicker::make('date_from')
-                            ->label('From Date'),
+                            ->label('From Date')
+                            ->default(today()),
                         DatePicker::make('date_to')
-                            ->label('To Date'),
+                            ->label('To Date')
+                            ->default(today()),
                     ])
                     ->query(function ($query, array $data) {
                         return $query

@@ -96,7 +96,8 @@ class DebtForm
                 ->dehydrated(false),
 
             DatePicker::make('paid_date')
-                ->label('Paid Date'),
+                ->label('Paid Date')
+                ->default(today()),
 
             Select::make('status')
                 ->label('Status')

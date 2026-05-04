@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StockTransfer extends Model
 {
     protected $fillable = [
+        'batch_id',
         'from_showroom_id',
         'to_showroom_id',
         'tyre_id',
@@ -14,6 +15,11 @@ class StockTransfer extends Model
         'date',
         'notes'
     ];
+
+    public function getBatchKeyAttribute(): string
+    {
+        return $this->batch_id ?: 'legacy-' . $this->id;
+    }
 
     public function fromShowroom()
     {

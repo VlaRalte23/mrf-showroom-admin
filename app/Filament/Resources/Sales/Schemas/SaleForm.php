@@ -30,6 +30,7 @@ class SaleForm
                 ->reactive(),
 
             DatePicker::make('date')
+                ->default(today())
                 ->required(),
 
             Textarea::make('notes')
