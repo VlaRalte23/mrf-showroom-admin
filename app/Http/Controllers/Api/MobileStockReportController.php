@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\SpaceInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,7 @@ class MobileStockReportController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $search = strtolower(trim((string) $request->query('search', '')));
+        $search = SpaceInsensitiveSearch::normalize((string) $request->query('search', ''));
         $categoryFilter = trim((string) $request->query('category', ''));
 
         $showrooms = DB::table('showrooms')
@@ -104,7 +105,9 @@ class MobileStockReportController extends Controller
                     }
 
                     $first = $items->first();
-                    $label = strtolower(trim(($first->tyre_size ?? '') . ' ' . ($first->pattern ?? '') . ' ' . ($first->category ?? '')));
+                    $label = SpaceInsensitiveSearch::normalize(
+                        ($first->tyre_size ?? '') . ' ' . ($first->pattern ?? '') . ' ' . ($first->category ?? '')
+                    );
 
                     return str_contains($label, $search);
                 });

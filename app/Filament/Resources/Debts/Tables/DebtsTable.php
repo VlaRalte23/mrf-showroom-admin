@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Debts\Tables;
 
+use App\Support\SpaceInsensitiveSearch;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
@@ -9,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class DebtsTable
 {
@@ -18,15 +20,20 @@ class DebtsTable
             ->columns([
                 TextColumn::make('customer_name')
                     ->label('Customer')
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => SpaceInsensitiveSearch::whereColumn($query, 'customer_name', $search))
                     ->sortable(),
 
                 TextColumn::make('customer_phone')
                     ->label('Phone')
-                    ->searchable(),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => SpaceInsensitiveSearch::whereColumn($query, 'customer_phone', $search)),
 
                 TextColumn::make('sale.showroom.name')
                     ->label('Showroom')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('sale.showroom', function (Builder $showroomQuery) use ($search): void {
+                            SpaceInsensitiveSearch::whereColumn($showroomQuery, 'name', $search);
+                        });
+                    })
                     ->sortable(),
 
                 TextColumn::make('items_bought')

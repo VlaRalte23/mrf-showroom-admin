@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Debt;
+use App\Support\SpaceInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,7 @@ class MobileDebtController extends Controller
     {
         $status = trim((string) $request->query('status', ''));
         $showroomId = $request->integer('showroom_id');
-        $search = strtolower(trim((string) $request->query('search', '')));
+        $search = SpaceInsensitiveSearch::normalize((string) $request->query('search', ''));
 
         $debts = Debt::query()
             ->with(['sale.showroom', 'sale.items.tyre'])
@@ -32,7 +33,7 @@ class MobileDebtController extends Controller
                     $debt->sale?->showroom?->name,
                 ])));
 
-                return str_contains($haystack, $search);
+                return str_contains(SpaceInsensitiveSearch::normalize($haystack), $search);
             })
             ->values();
 

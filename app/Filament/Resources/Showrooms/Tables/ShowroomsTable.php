@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Showrooms\Tables;
 
+use App\Support\SpaceInsensitiveSearch;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Builder;
 
 class ShowroomsTable
 {
@@ -20,7 +22,7 @@ class ShowroomsTable
 
                 TextColumn::make('name')
                     ->label('Showroom Name')
-                    ->searchable(),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => SpaceInsensitiveSearch::whereColumn($query, 'name', $search)),
 
                 TextColumn::make('location')
                     ->label('Location'),

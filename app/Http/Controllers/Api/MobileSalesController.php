@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
+use App\Support\SpaceInsensitiveSearch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +15,7 @@ class MobileSalesController extends Controller
         $showroomId = $request->integer('showroom_id');
         $fromDate = trim((string) $request->query('from_date', ''));
         $toDate = trim((string) $request->query('to_date', ''));
-        $search = strtolower(trim((string) $request->query('search', '')));
+        $search = SpaceInsensitiveSearch::normalize((string) $request->query('search', ''));
 
         $sales = Sale::query()
             ->with(['showroom', 'items.tyre'])
@@ -40,7 +41,7 @@ class MobileSalesController extends Controller
                     $itemNames,
                 ])));
 
-                return str_contains($haystack, $search);
+                return str_contains(SpaceInsensitiveSearch::normalize($haystack), $search);
             })
             ->values();
 

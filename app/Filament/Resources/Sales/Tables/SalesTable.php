@@ -2,15 +2,18 @@
 
 namespace App\Filament\Resources\Sales\Tables;
 
+use App\Support\SpaceInsensitiveSearch;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
 
 class SalesTable
 {
@@ -22,18 +25,29 @@ class SalesTable
                 // Showroom
                 TextColumn::make('showroom.name')
                     ->label('Showroom')
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('showroom', function (Builder $showroomQuery) use ($search): void {
+                            SpaceInsensitiveSearch::whereColumn($showroomQuery, 'name', $search);
+                        });
+                    }),
 
                 // Tyres Sold (size + qty)
-                TextColumn::make('items.tyre.tyre_size')
+                TextColumn::make('tyres_sold_summary')
                     ->label('Tyres Sold')
-                    ->formatStateUsing(function ($record) {
+                    ->getStateUsing(function ($record) {
                         return $record->items
-                            ->map(function ($item) {
-                                return $item->tyre->tyre_size . ' (' . $item->quantity . ')';
+                            ->groupBy(function ($item) {
+                                $size = $item->tyre?->tyre_size ?? 'Unknown Tyre';
+                                $pattern = $item->tyre?->pattern;
+
+                                return trim($size . ' ' . ($pattern ?? ''));
+                            })
+                            ->map(function ($items, $name) {
+                                return $name . ' (' . $items->sum('quantity') . ')';
                             })
                             ->implode(', ');
-                    }),
+                    })
+                    ->wrap(),
 
                 // Total Quantity
                 TextColumn::make('total_quantity')
@@ -64,10 +78,10 @@ class SalesTable
                     ->limit(50)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
-                        if (strlen($state) <= 50) {
+                        if (! filled($state) || mb_strlen((string) $state) <= 50) {
                             return null;
                         }
-                        return $state;
+                        return (string) $state;
                     }),
 
                 // Debt Status
@@ -112,7 +126,7 @@ class SalesTable
                     }),
             ])
 
-            ->recordActions([
+            ->actions([
                 Action::make('create_debt')
                     ->label('Create Debt')
                     ->icon('heroicon-o-currency-dollar')
@@ -120,9 +134,10 @@ class SalesTable
                     ->visible(fn ($record) => !$record->hasDebt())
                     ->url(fn ($record) => route('filament.admin.resources.debts.create', ['sale_id' => $record->id])),
                 EditAction::make(),
+                DeleteAction::make(),
             ])
 
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

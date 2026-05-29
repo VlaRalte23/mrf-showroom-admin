@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\SpaceInsensitiveSearch;
 use BackedEnum;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
@@ -108,7 +109,7 @@ class StockReport extends Page
 
     public function getFilteredStocksProperty(): Collection
     {
-        $search = strtolower(trim($this->search));
+        $search = SpaceInsensitiveSearch::normalize($this->search);
         $categoryFilter = trim($this->categoryFilter);
 
         return collect($this->stocks)
@@ -122,7 +123,9 @@ class StockReport extends Page
                     }
 
                     $first = $items->first();
-                    $label = strtolower(trim(($first->tyre_size ?? '') . ' ' . ($first->pattern ?? '') . ' ' . ($first->category ?? '')));
+                    $label = SpaceInsensitiveSearch::normalize(
+                        ($first->tyre_size ?? '') . ' ' . ($first->pattern ?? '') . ' ' . ($first->category ?? '')
+                    );
 
                     return str_contains($label, $search);
                 });

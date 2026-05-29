@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Debts\Schemas;
 
+use App\Support\SpaceInsensitiveSearch;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -35,14 +36,57 @@ class DebtForm
                         ->all()
                 )
                 ->searchable()
+                ->getSearchResultsUsing(function (string $search): array {
+                    $normalizedSearch = SpaceInsensitiveSearch::normalize($search);
+
+                    return Sale::query()
+                        ->with('showroom')
+                        ->where(function ($query) use ($normalizedSearch) {
+                            $query->whereRaw(SpaceInsensitiveSearch::sqlCompactExpression('CAST(id as CHAR)') . ' LIKE ?', ["%{$normalizedSearch}%"])
+                                ->orWhereRaw(SpaceInsensitiveSearch::sqlCompactExpression("DATE_FORMAT(date, '%d/%m/%Y')") . ' LIKE ?', ["%{$normalizedSearch}%"])
+                                ->orWhereHas('showroom', function ($showroomQuery) use ($normalizedSearch): void {
+                                    $showroomQuery->whereRaw(SpaceInsensitiveSearch::sqlCompactExpression('name') . ' LIKE ?', ["%{$normalizedSearch}%"]);
+                                });
+                        })
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(function (Sale $sale) {
+                            $formattedDate = $sale->date instanceof \DateTimeInterface
+                                ? $sale->date->format('d/m/Y')
+                                : Carbon::parse($sale->date)->format('d/m/Y');
+
+                            $showroomName = $sale->showroom?->name ?? 'Unknown Showroom';
+
+                            return [$sale->id => "Sale #{$sale->id} - {$showroomName} - {$formattedDate}"];
+                        })
+                        ->map(fn ($label) => filled($label) ? (string) $label : 'Unknown Sale')
+                        ->all();
+                })
+                ->getOptionLabelUsing(function ($value): ?string {
+                    $sale = Sale::with('showroom')->find($value);
+
+                    if (! $sale) {
+                        return null;
+                    }
+
+                    $formattedDate = $sale->date instanceof \DateTimeInterface
+                        ? $sale->date->format('d/m/Y')
+                        : Carbon::parse($sale->date)->format('d/m/Y');
+
+                    $showroomName = $sale->showroom?->name ?? 'Unknown Showroom';
+
+                    return "Sale #{$sale->id} - {$showroomName} - {$formattedDate}";
+                })
                 ->default(fn () => request()->integer('sale_id') ?: null)
                 ->disabled(fn () => filled(request()->query('sale_id')))
                 ->required()
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                        $sale = Sale::with('items')->find($state);
-                        if ($sale) {
+                        $saleId = is_numeric($state) ? (int) $state : null;
+                        $sale = $saleId ? Sale::with('items')->find($saleId) : null;
+
+                        if ($sale instanceof Sale) {
                             $total = $sale->items->sum(function ($item) {
                                 return $item->quantity * $item->price;
                             });

@@ -3,13 +3,16 @@
 namespace App\Filament\Resources\StockTransfers\Tables;
 
 use App\Models\StockTransfer;
+use App\Support\SpaceInsensitiveSearch;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\CreateAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
@@ -61,12 +64,20 @@ class StockTransfersTable
                 TextColumn::make('fromShowroom.name')
                     ->label('From Showroom')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('fromShowroom', function (Builder $showroomQuery) use ($search): void {
+                            SpaceInsensitiveSearch::whereColumn($showroomQuery, 'name', $search);
+                        });
+                    }),
 
                 TextColumn::make('toShowroom.name')
                     ->label('To Showroom')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('toShowroom', function (Builder $showroomQuery) use ($search): void {
+                            SpaceInsensitiveSearch::whereColumn($showroomQuery, 'name', $search);
+                        });
+                    }),
 
                 TextColumn::make('tyres')
                     ->label('Tyres')
@@ -105,10 +116,10 @@ class StockTransfersTable
                     ->limit(50)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
-                        if (strlen($state) <= 50) {
+                        if (! filled($state) || mb_strlen((string) $state) <= 50) {
                             return null;
                         }
-                        return $state;
+                        return (string) $state;
                     }),
 
             ])
@@ -122,12 +133,21 @@ class StockTransfersTable
             ->recordActions([
                 EditAction::make()
                     ->label('Edit First Row'),
+                DeleteAction::make()
+                    ->action(function (StockTransfer $record): void {
+                        self::getBatchTransfersQuery($record)->delete();
+                    }),
             ])
 
             ->toolbarActions([
                 CreateAction::make(),
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            $records->each(function (StockTransfer $record): void {
+                                self::getBatchTransfersQuery($record)->delete();
+                            });
+                        }),
                 ]),
             ]);
     }
